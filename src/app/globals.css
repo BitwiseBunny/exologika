@@ -1,6 +1,42 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+
+@import url('https://fonts.googleapis.com/css2?family=Berkshire+Swash&family=Josefin+Sans&family=Montserrat&family=Poiret+One&family=Raleway:wght@200&family=Sacramento&family=Sail&display=swap');
+
+/* font-family: 'Berkshire Swash', cursive;
+font-family: 'Josefin Sans', sans-serif;
+font-family: 'Montserrat', sans-serif;
+font-family: 'Poiret One', cursive;
+font-family: 'Raleway', sans-serif;
+font-family: 'Sacramento', cursive;
+font-family: 'Sail', cursive; */
+
+@layer {
+  html,
+  main {
+    height: 100%;
+    /* font-family: Montserrat; */
+    /* font-family: 'Berkshire Swash', cursive;
+    font-family: 'Josefin Sans', sans-serif;
+    font-family: 'Montserrat', sans-serif;
+    font-family: 'Poiret One', cursive;
+    font-family: 'Raleway', sans-serif;
+    font-family: 'Sacramento', cursive;
+    font-family: 'Sail', cursive; */
+  }
+}
+
+  /* main {
+   height: 100%;
+  }
+  main.text-pink-300 {
+    height: 100%;
+  }
+  footer {
+    height: 30%;
+  } */
 /* 
 :root {
   --foreground-rgb: 0, 0, 0;
