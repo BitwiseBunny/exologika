@@ -3,6 +3,7 @@ import { Tab } from '@headlessui/react'
 import Head from 'next/head';
 import Image from 'next/image'
 import Link from 'next/link'
+import Masonry from 'react-masonry-css'
 
 const tabs = [
   {
@@ -52,7 +53,18 @@ export default function Home() {
           ))}
         </Tab.List>
         <Tab.Panels className='rounded-3xl bg-sky-500 bg-opacity-50 h-full max-w-[900px] w-full p-2 sm:p-4 my-6'>
-          <Tab.Panel>Content 1</Tab.Panel>
+          <Tab.Panel>
+          <Masonry
+            breakpointCols={3}
+            className="my-masonry-grid"
+            columnClassName="my-masonry-grid_column">
+            <img src={"./beautifulview.JPG"} alt="music pavilion" /> 
+            <img src={"./milkshakeyard.JPG"} alt="milkshake yard" /> 
+            <img src={"./frenchflags.JPG"} alt="french flags" /> 
+            <img src={"./angelinthecolumns.JPG"} alt="french flags" /> 
+            <img src={"./musicpavilion.JPG"} alt="music pavilion" /> 
+          </Masonry>
+          </Tab.Panel>
           <Tab.Panel>Content 2</Tab.Panel>
           <Tab.Panel>Content 3</Tab.Panel>
           <Tab.Panel>Content 4</Tab.Panel>
