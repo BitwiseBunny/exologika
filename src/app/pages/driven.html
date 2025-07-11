@@ -1,0 +1,452 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Daily Weight Loss Checklist</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            padding: 10px;
+            font-size: 16px;
+            line-height: 1.5;
+            overflow-x: hidden;
+        }
+        h1, h2 {
+            font-size: 1.5em;
+            text-align: center;
+            color: #2c3e50;
+            padding: 10px 0;
+        }
+        h2 {
+            font-size: 1.2em;
+        }
+        .checklist, .progress, .weight-tracker {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin: 10px 0;
+        }
+        .task {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            min-height: 60px;
+            touch-action: manipulation;
+        }
+        .task input[type="checkbox"] {
+            width: 24px;
+            height: 24px;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+        .task span {
+            flex-grow: 1;
+            font-size: 1.1em;
+        }
+        .task.completed span {
+            text-decoration: line-through;
+            color: #888;
+        }
+        .task-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        .edit-btn, .delete-btn {
+            background: none;
+            border: none;
+            font-size: 1em;
+            padding: 5px;
+            cursor: pointer;
+        }
+        .edit-btn { color: #3498db; }
+        .delete-btn { color: #e74c3c; }
+        .progress {
+            text-align: center;
+            padding: 10px;
+        }
+        .progress-bar {
+            height: 15px;
+            background: #ddd;
+            border-radius: 7px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: #27ae60;
+            transition: width 0.3s ease;
+        }
+        .weight-tracker {
+            padding: 15px;
+        }
+        .weight-tracker select, .weight-tracker input[type="number"] {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1em;
+            margin: 5px 0;
+            width: 100%;
+        }
+        .weight-tracker button {
+            background: #3498db;
+            color: #fff;
+            border: none;
+            padding: 12px;
+            border-radius: 5px;
+            font-size: 1em;
+            cursor: pointer;
+            width: 100%;
+            margin: 10px 0;
+        }
+        .weight-tracker button:hover {
+            background: #2980b9;
+        }
+        .chart-container {
+            position: relative;
+            height: 200px;
+            margin: 10px 0;
+        }
+        .input-container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #fff;
+            padding: 10px;
+            box-shadow: 0 -2px 5px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+        input[type="text"] {
+            flex-grow: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+        .add-task, .share-btn {
+            background: #3498db;
+            color: #fff;
+            border: none;
+            padding: 12px;
+            border-radius: 5px;
+            font-size: 1em;
+            cursor: pointer;
+            flex: 1;
+            max-width: 120px;
+        }
+        .add-task:hover, .share-btn:hover {
+            background: #2980b9;
+        }
+        @media (min-width: 600px) {
+            body {
+                max-width: 500px;
+                margin: 0 auto;
+            }
+            .input-container {
+                max-width: 500px;
+                margin: 0 auto;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+        }
+        @media (max-width: 400px) {
+            .task span { font-size: 0.95em; }
+            .add-task, .share-btn { padding: 10px; font-size: 0.9em; }
+            h1 { font-size: 1.3em; }
+            h2 { font-size: 1.1em; }
+        }
+    </style>
+</head>
+<body>
+    <h1>Daily Weight Loss Checklist</h1>
+    <div class="progress">
+        Progress: <span id="progress-text">0%</span>
+        <div class="progress-bar">
+            <div class="progress-fill" id="progress-fill"></div>
+        </div>
+    </div>
+    <div class="checklist" id="checklist"></div>
+    <div class="weight-tracker">
+        <h2>Track Weight Progress</h2>
+        <select id="profile" onchange="updateChart()">
+            <option value="male">Male (31, 306 → 230 lbs)</option>
+            <option value="female">Female (36, 130 → 117 lbs)</option>
+        </select>
+        <input type="number" id="weight-input" placeholder="Enter current weight (lbs)" step="0.1">
+        <button onclick="logWeight()">Log Weight</button>
+        <div class="chart-container">
+            <canvas id="weightChart"></canvas>
+        </div>
+    </div>
+    <div class="input-container">
+        <input type="text" id="new-task" placeholder="Add task...">
+        <button class="add-task" onclick="addTask()">Add</button>
+        <button class="share-btn" onclick="shareChecklist()">Share</button>
+    </div>
+
+    <script>
+        // Default tasks
+        const defaultTasks = [
+            { id: 1, text: "Eat breakfast (Greek yogurt, berries, protein; ~400 cal)", completed: false },
+            { id: 2, text: "Snack: 1 oz almonds + apple (~200 cal)", completed: false },
+            { id: 3, text: "Lunch: Chicken, broccoli, rice (~500 cal)", completed: false },
+            { id: 4, text: "Snack: Protein bar or carrots (~150 cal)", completed: false },
+            { id: 5, text: "Dinner: Salmon, salad, sweet potato (~600 cal)", completed: false },
+            { id: 6, text: "Drink 80–100 oz water", completed: false },
+            { id: 7, text: "Walk 10–15 min (2–3 rest stops)", completed: false },
+            { id: 8, text: "Stretch 5 min every 2–3 hours", completed: false },
+            { id: 9, text: "Do 20-min workout (bodyweight or walk)", completed: false },
+            { id: 10, text: "Sleep 7–9 hours", completed: false }
+        ];
+
+        let tasks = JSON.parse(localStorage.getItem('tasks')) || defaultTasks;
+
+        // Sample weight data
+        const weightData = {
+            male: [
+                { week: 0, weight: 306 },
+                { week: 4, weight: 302 },
+                { week: 8, weight: 298 },
+                { week: 12, weight: 294 },
+                { week: 16, weight: 290 },
+                { week: 20, weight: 286 },
+                { week: 24, weight: 282 },
+                { week: 28, weight: 278 },
+                { week: 32, weight: 274 },
+                { week: 36, weight: 270 },
+                { week: 40, weight: 266 },
+                { week: 44, weight: 262 },
+                { week: 48, weight: 258 },
+                { week: 52, weight: 254 }
+            ],
+            female: [
+                { week: 0, weight: 130 },
+                { week: 4, weight: 128.5 },
+                { week: 8, weight: 127 },
+                { week: 12, weight: 125.5 },
+                { week: 16, weight: 124 },
+                { week: 20, weight: 122.5 }
+            ]
+        };
+
+        let userWeights = JSON.parse(localStorage.getItem('userWeights')) || { male: [], female: [] };
+        let chart;
+
+        // Initialize chart
+        function initChart() {
+            const ctx = document.getElementById('weightChart').getContext('2d');
+            const profile = document.getElementById('profile').value;
+            const data = userWeights[profile].length ? userWeights[profile] : weightData[profile];
+            chart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [{
+                        label: 'Weight (lbs)',
+                        data: data.map(d => ({ x: d.week, y: d.weight })),
+                        borderColor: '#3498db',
+                        backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                        fill: true,
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: { title: { display: true, text: 'Weeks' } },
+                        y: {
+                            title: { display: true, text: 'Weight (lbs)' },
+                            beginAtZero: false,
+                            suggestedMin: profile === 'male' ? 220 : 110,
+                            suggestedMax: profile === 'male' ? 310 : 135
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update chart when profile changes or new weight is logged
+        function updateChart() {
+            const profile = document.getElementById('profile').value;
+            const data = userWeights[profile].length ? userWeights[profile] : weightData[profile];
+            chart.data.datasets[0].data = data.map(d => ({ x: d.week, y: d.weight }));
+            chart.options.scales.y.suggestedMin = profile === 'male' ? 220 : 110;
+            chart.options.scales.y.suggestedMax = profile === 'male' ? 310 : 135;
+            chart.update();
+        }
+
+        // Log weight
+        function logWeight() {
+            const weightInput = document.getElementById('weight-input');
+            const weight = parseFloat(weightInput.value);
+            const profile = document.getElementById('profile').value;
+            if (!isNaN(weight) && weight > 0) {
+                const lastWeek = userWeights[profile].length ? Math.max(...userWeights[profile].map(d => d.week)) + 1 : 0;
+                userWeights[profile].push({ week: lastWeek, weight });
+                userWeights[profile].sort((a, b) => a.week - b.week);
+                localStorage.setItem('userWeights', JSON.stringify(userWeights));
+                weightInput.value = '';
+                updateChart();
+            }
+        }
+
+        // Render tasks
+        function renderTasks() {
+            const checklist = document.getElementById('checklist');
+            checklist.innerHTML = '';
+            tasks.forEach(task => {
+                const taskDiv = document.createElement('div');
+                taskDiv.className = `task ${task.completed ? 'completed' : ''}`;
+                taskDiv.dataset.id = task.id;
+                taskDiv.innerHTML = `
+                    <input type="checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTask(${task.id})">
+                    <span>${task.text}</span>
+                    <div class="task-buttons">
+                        <button class="edit-btn" onclick="editTask(${task.id})">Edit</button>
+                        <button class="delete-btn" onclick="deleteTask(${task.id})">Del</button>
+                    </div>
+                `;
+                checklist.appendChild(taskDiv);
+            });
+            updateProgress();
+            saveTasks();
+            addSwipeGestures();
+        }
+
+        // Toggle task completion
+        function toggleTask(id) {
+            tasks = tasks.map(task => task.id === id ? { ...task, completed: !task.completed } : task);
+            renderTasks();
+        }
+
+        // Add new task
+        function addTask() {
+            const newTaskInput = document.getElementById('new-task');
+            const text = newTaskInput.value.trim();
+            if (text) {
+                const newTask = {
+                    id: tasks.length ? Math.max(...tasks.map(t => t.id)) + 1 : 1,
+                    text,
+                    completed: false
+                };
+                tasks.push(newTask);
+                newTaskInput.value = '';
+                renderTasks();
+            }
+        }
+
+        // Edit task
+        function editTask(id) {
+            const newText = prompt('Edit task:', tasks.find(t => t.id === id).text);
+            if (newText !== null && newText.trim()) {
+                tasks = tasks.map(task => task.id === id ? { ...task, text: newText.trim() } : task);
+                renderTasks();
+            }
+        }
+
+        // Delete task
+        function deleteTask(id) {
+            if (confirm('Delete this task?')) {
+                tasks = tasks.filter(task => task.id !== id);
+                renderTasks();
+            }
+        }
+
+        // Update progress bar
+        function updateProgress() {
+            const completed = tasks.filter(task => task.completed).length;
+            const total = tasks.length;
+            const percentage = total ? Math.round((completed / total) * 100) : 0;
+            document.getElementById('progress-text').textContent = `${percentage}%`;
+            document.getElementById('progress-fill').style.width = `${percentage}%`;
+        }
+
+        // Save tasks to localStorage
+        function saveTasks() {
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+        }
+
+        // Share checklist
+        function shareChecklist() {
+            const encodedTasks = encodeURIComponent(JSON.stringify(tasks));
+            const encodedWeights = encodeURIComponent(JSON.stringify(userWeights));
+            const shareUrl = `${window.location.href.split('?')[0]}?tasks=${encodedTasks}&weights=${encodedWeights}`;
+            prompt('Copy this URL to share your checklist and weight progress:', shareUrl);
+        }
+
+        // Load shared tasks and weights from URL
+        function loadSharedTasks() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const sharedTasks = urlParams.get('tasks');
+            const sharedWeights = urlParams.get('weights');
+            if (sharedTasks) {
+                try {
+                    tasks = JSON.parse(decodeURIComponent(sharedTasks));
+                    renderTasks();
+                } catch (e) {
+                    console.error('Invalid shared tasks');
+                }
+            }
+            if (sharedWeights) {
+                try {
+                    userWeights = JSON.parse(decodeURIComponent(sharedWeights));
+                    localStorage.setItem('userWeights', JSON.stringify(userWeights));
+                    updateChart();
+                } catch (e) {
+                    console.error('Invalid shared weights');
+                }
+            }
+        }
+
+        // Swipe gestures for edit/delete
+        function addSwipeGestures() {
+            const taskElements = document.querySelectorAll('.task');
+            taskElements.forEach(task => {
+                let startX = 0;
+                task.addEventListener('touchstart', (e) => {
+                    startX = e.touches[0].clientX;
+                });
+                task.addEventListener('touchend', (e) => {
+                    const endX = e.changedTouches[0].clientX;
+                    const deltaX = endX - startX;
+                    const taskId = parseInt(task.dataset.id);
+                    if (deltaX > 50) {
+                        editTask(taskId);
+                    } else if (deltaX < -50) {
+ 等
+
+            deleteTask(taskId);
+                    }
+                });
+            });
+        }
+
+        // Initialize
+        loadSharedTasks();
+        renderTasks();
+        initChart();
+
+        // Add task with Enter key
+        document.getElementById('new-task').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') addTask();
+        });
+
+        // Add weight logging with Enter key
+        document.getElementById('weight-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') logWeight();
+        });
+    </script>
+</body>
+</html>
